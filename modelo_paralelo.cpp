@@ -64,7 +64,7 @@ void ejemplo_sumarizacion() {
     {
         timer_t t;
         // Cuanto items va a procesar cada hilo;
-        int nhilos = static_cast<int>(thread::hardware_concurrency()) + 1;
+        int nhilos = static_cast<int>(thread::hardware_concurrency()) * 2;
         int rango = ceil(static_cast<double>(size(vec)) / (nhilos));
         int longitud = 0;
 
