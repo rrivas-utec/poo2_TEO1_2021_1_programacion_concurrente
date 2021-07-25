@@ -43,57 +43,52 @@ public:
 };
 
 template<typename Iterator>
-void acumulacion(Iterator start, Iterator stop, Iterator result) {
+void acumular(Iterator start, Iterator stop, Iterator result) {
     *result = accumulate(start, stop, 0);
 }
 
 void ejemplo_sumarizacion() {
-    vector<int> vec;
+    vector<int> vec_data;
     {
+        cout << "Generar vector..." << endl;
         timer_t t;
-        vec = generar_vector();
+        vec_data = generar_vector();
+        cout << "Size: " << size(vec_data) << endl;
     }
-    cout << size(vec) << endl;
     {
+        cout << "Calculo serial..." << endl;
         timer_t t;
-        auto total = accumulate(begin(vec), end(vec), 0); // serial
+        auto total = accumulate(begin(vec_data), end(vec_data), 0); // serial
         cout << "Total: " << total << endl;
     }
-//    cout << thread::hardware_concurrency() << endl;
-
     {
+        cout << "Calculo paralelo..." << endl;
         timer_t t;
-        // Cuanto items va a procesar cada hilo;
-        int nhilos = static_cast<int>(thread::hardware_concurrency()) * 2;
-        int rango = ceil(static_cast<double>(size(vec)) / (nhilos));
-        int longitud = 0;
-
-        vector<thread> vhilos (nhilos);
-        vector<int> result (nhilos);
-
-        auto current = begin(vec);
-        auto stop = end(vec);
-        auto iter_resultado = begin(result);
+        // Calculo del numero de hilos
+        int n_hilos = static_cast<int>(thread::hardware_concurrency()) + 1;
+        // Calculo de cantidad de items a procesar por cada hilo
+        int rango = ceil(static_cast<double>(size(vec_data)) / (n_hilos));
+        // Define el vector de hilos
+        vector<thread> vec_hilos (n_hilos);
+        // Define el vector de los resultados de hilos
+        vector<int> res_hilos (n_hilos);
+        // Iterators
+        auto it_cur_data = begin(vec_data);     // iterator de vector de datos
+        auto it_res_hilos = begin(res_hilos);   // iterator de resultados de hilos
         // Recorrer los hilos
-        for (auto& item: vhilos) {
-            if (longitud + rango >= size(vec))
-                rango += static_cast<int>(size(vec)) - (longitud + rango);
-            // El error estaba en que si se envía
-            // los valores por referencia en el lambda los rangos van cambiando.
+        for (auto& item: vec_hilos) {
+            if (distance(it_cur_data, end(vec_data)) < rango)
+                rango = distance(it_cur_data, end(vec_data));
             item = thread(
-                    [=]{acumulacion (current, next(current, rango), iter_resultado);});
-            current = next(current, rango);
-            ++iter_resultado;
-            longitud += rango;
+                    [=]{acumular (it_cur_data, next(it_cur_data, rango), it_res_hilos);});
+            it_cur_data = next(it_cur_data, rango);
+            ++it_res_hilos;
         }
         // Juntamos los hilos
-        for(auto& h: vhilos)
+        for(auto& h: vec_hilos)
             h.join();
-
         // Total general
-        auto total = accumulate(begin(result), end(result), 0);
-
+        auto total = accumulate(begin(res_hilos), end(res_hilos), 0);
         cout << "Total: " << total << endl;
     }
-
 }
