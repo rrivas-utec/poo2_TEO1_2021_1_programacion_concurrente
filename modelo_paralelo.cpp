@@ -64,8 +64,8 @@ void ejemplo_sumarizacion() {
     {
         timer_t t;
         // Cuanto items va a procesar cada hilo;
-        auto nhilos = thread::hardware_concurrency();
-        int rango = size(vec) / nhilos;
+        int nhilos = static_cast<int>(thread::hardware_concurrency()) + 1;
+        int rango = ceil(static_cast<double>(size(vec)) / (nhilos));
         int longitud = 0;
 
         vector<thread> vhilos (nhilos);
@@ -76,8 +76,10 @@ void ejemplo_sumarizacion() {
         auto iter_resultado = begin(result);
         // Recorrer los hilos
         for (auto& item: vhilos) {
-            if (longitud >= size(vec))
-                rango -= longitud - size(vec);
+            if (longitud + rango >= size(vec))
+                rango += static_cast<int>(size(vec)) - (longitud + rango);
+            // El error estaba en que si se envía
+            // los valores por referencia en el lambda los rangos van cambiando.
             item = thread(
                     [=]{acumulacion (current, next(current, rango), iter_resultado);});
             current = next(current, rango);
